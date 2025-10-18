@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Photo Map | 竜弥</title>
+  <meta name="description" content="撮影スポットを地図で見られるミニマル・ポートフォリオ" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;600&display=swap" rel="stylesheet">
+  <!-- Leaflet（地図用）: APIキー不要 / 無料 -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <style>
+    :root{
+      --bg:#ffffff; --fg:#0f1115; --muted:#737b8c; --line:#e9edf2; --accent:#111827;
+      --radius:18px;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{margin:0; font-family:"Noto Sans JP", system-ui, -apple-system, Segoe UI, Roboto, sans-serif; color:var(--fg); background:var(--bg); letter-spacing:0.01em}
+    a{color:var(--fg); text-decoration:none}
+    header{position:sticky; top:0; z-index:50; backdrop-filter:saturate(180%) blur(8px); background:rgba(255,255,255,.8); border-bottom:1px solid var(--line)}
+    .wrap{max-width:1100px; margin:0 auto; padding:20px}
+    .nav{display:flex; align-items:center; justify-content:space-between; gap:16px}
+    .brand{font-weight:600; letter-spacing:.06em}
+    .tabs{display:flex; gap:16px}
+    .tabs a{opacity:.7}
+    .tabs a.active,.tabs a:hover{opacity:1}
+
+    .hero{display:grid; grid-template-columns:1.2fr .8fr; gap:28px; padding:60px 20px 30px}
+    .hero img{width:100%; height:420px; object-fit:cover; border-radius:var(--radius); border:1px solid var(--line)}
+    .hero .copy{display:flex; flex-direction:column; gap:16px; align-self:center}
+    h1{font-weight:600; font-size:28px; margin:0}
+    p{margin:0; line-height:1.8}
+    .btn{display:inline-block; padding:12px 18px; border:1px solid var(--fg); border-radius:999px; font-size:14px}
+
+    section{padding:40px 20px; border-top:1px solid var(--line)}
+    h2{font-size:18px; font-weight:600; margin:0 0 14px}
+    .muted{color:var(--muted)}
+
+    /* Map */
+    #map{width:100%; height:520px; border-radius:var(--radius); border:1px solid var(--line)}
+
+    /* Gallery */
+    .grid{display:grid; grid-template-columns:repeat(3,1fr); gap:16px}
+    .card{border:1px solid var(--line); border-radius:var(--radius); overflow:hidden}
+    .card img{width:100%; height:240px; object-fit:cover; display:block}
+    .card .meta{padding:10px 12px; font-size:13px; color:var(--muted)}
+
+    /* Footer */
+    footer{padding:32px 20px 80px; border-top:1px solid var(--line); color:var(--muted)}
+
+    @media (max-width: 900px){
+      .hero{grid-template-columns:1fr;}
+      .hero img{height:300px}
+      .grid{grid-template-columns:1fr 1fr}
+    }
+    @media (max-width: 600px){
+      .grid{grid-template-columns:1fr}
+      #map{height:420px}
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="wrap nav">
+      <div class="brand">Photo Map</div>
+      <nav class="tabs">
+        <a href="#home" class="active">Home</a>
+        <a href="#mapsec">Map</a>
+        <a href="#gallery">Gallery</a>
+        <a href="#about">About</a>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Home -->
+  <main id="home" class="wrap">
+    <div class="hero">
+      <!-- 仮の代表写真：好きな写真に差し替えてOK -->
+      <img src="https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?q=80&w=1600&auto=format&fit=crop" alt="hero placeholder" />
+      <div class="copy">
+        <h1>旅の途中で出会った光を、地図と写真で。</h1>
+        <p class="muted">※仮テキスト。後であなたの文体に差し替えてください。</p>
+        <div style="display:flex; gap:10px; margin-top:8px">
+          <a class="btn" href="#mapsec">地図を見る</a>
+          <a class="btn" href="#gallery">ギャラリー</a>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Map section -->
+  <section id="mapsec">
+    <div class="wrap">
+      <h2>Map</h2>
+      <p class="muted" style="margin-bottom:12px">撮影スポット（仮ピン）。後で自由に編集できます。</p>
+      <div id="map" role="region" aria-label="撮影スポットマップ"></div>
+      <p class="muted" style="margin-top:8px; font-size:12px">地図：© OpenStreetMap contributors | 表示：Leaflet</p>
+    </div>
+  </section>
+
+  <!-- Gallery -->
+  <section id="gallery">
+    <div class="wrap">
+      <h2>Gallery</h2>
+      <div class="grid" id="galleryGrid">
+        <!-- 仮画像：後で差し替えOK（ローカルのimages/*.jpgでもOK） -->
+        <figure class="card"><img src="https://picsum.photos/id/1018/1200/800" alt="placeholder 1"><figcaption class="meta">朝霧 / ISO100 F8 1/200</figcaption></figure>
+        <figure class="card"><img src="https://picsum.photos/id/1021/1200/800" alt="placeholder 2"><figcaption class="meta">夕景 / ISO100 F5.6 1/125</figcaption></figure>
+        <figure class="card"><img src="https://picsum.photos/id/1043/1200/800" alt="placeholder 3"><figcaption class="meta">湖面 / ISO100 F11 1/60</figcaption></figure>
+      </div>
+    </div>
+  </section>
+
+  <!-- About -->
+  <section id="about">
+    <div class="wrap">
+      <h2>About / Links</h2>
+      <p class="muted">仮プロフィール：工場改善×写真。静けさと光を集めています。</p>
+      <p style="margin-top:8px"><a href="https://www.instagram.com/ksr_2000_/" target="_blank" rel="noopener">Instagram → ksr_2000_</a></p>
+    </div>
+  </section>
+
+  <footer>
+    <div class="wrap">© <span id="year"></span> 竜弥 / Photo Map</div>
+  </footer>
+
+  <script>
+    document.getElementById('year').textContent = new Date().getFullYear();
+
+    // =============================
+    // マップ初期化
+    // =============================
+    const map = L.map('map', { scrollWheelZoom: false }).setView([35.3, 136.9], 6); // 中部〜近畿あたり
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(map);
+
+    // =============================
+    // 仮ピン定義（ここを書き換えるだけで更新OK）
+    // title: スポット名
+    // lat, lng: 緯度経度（Googleマップで右クリック→緯度経度コピー）
+    // thumb: サムネ画像URL（任意）
+    // url: 詳細ページのURLやInstagram投稿など（任意）
+    // =============================
+    const spots = [
+      { title: '円月島（仮）', lat: 33.6776, lng: 135.3313, thumb: 'https://picsum.photos/id/1050/400/260', url: '#' },
+      { title: '獅子岩（仮）', lat: 33.8885, lng: 136.1046, thumb: 'https://picsum.photos/id/1063/400/260', url: '#' },
+      { title: '源氏浜（仮）', lat: 35.2797, lng: 136.1297, thumb: 'https://picsum.photos/id/1003/400/260', url: '#' }
+    ];
+
+    // ピンを地図へ描画
+    const markers = L.featureGroup();
+    spots.forEach(s => {
+      const html = `
+        <div style="min-width:180px">
+          <div style="font-weight:600; margin-bottom:6px">${s.title}</div>
+          ${s.thumb ? `<img src="${s.thumb}" alt="thumb" style="width:100%; height:120px; object-fit:cover; border-radius:10px; margin-bottom:6px">` : ''}
+          ${s.url ? `<a href="${s.url}" target="_blank" rel="noopener" style="font-size:12px">詳しく見る</a>` : ''}
+        </div>`;
+      const m = L.marker([s.lat, s.lng]).bindPopup(html);
+      m.addTo(markers);
+    });
+    markers.addTo(map);
+    map.fitBounds(markers.getBounds(), { padding: [30,30] });
+
+    // =============================
+    // 使い方（メモ）
+    // 1) spots[] に撮影地を追加するだけ
+    // 2) thumb を自分の画像に差し替え（/images/xxx.jpg 等）
+    // 3) url にInstagram投稿や詳細ページを入れると便利
+    // 4) Gallery 画像も <figure> を複製して追加
+    // =============================
+  </script>
+</body>
+</html>
